@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  forms     Form[]
+}
+
+model User {
+  id               String       @id @default(uuid())
+  email            String?      @unique
+  fullName         String?
+  dateOfBirth      String?      // Storing as string "YYYY-MM-DD" for simplicity in matching
+  role             String       // "ADMIN" | "CLIENT"
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  forms            Form[]       @relation("CreatedForms")
+  
+  // Magic Link Auth (Keeping for legacy or potential future use, but making optional)
+  magicLinkToken   String?
+  magicLinkExpires DateTime?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([fullName, dateOfBirth]) // Ensure unique combination for clients
+}
+
+model Form {
+  id              String       @id @default(uuid())
+  clientName      String
+  email           String?
+  status          String       @default("Draft") // Draft, Submitted, Reviewing, Approved, Rejected
+  
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  
+  createdById     String
+  createdBy       User         @relation("CreatedForms", fields: [createdById], references: [id])
+  
+  items           InsuranceItem[]
+  
+  deletedAt       DateTime?    // Soft delete
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model InsuranceItem {
+  id                  String    @id @default(uuid())
+  formId              String
+  form                Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
+  
+  insuranceType       String    // e.g., "Private Liability"
+  package             String    // "Basic", "Comfort", "Premium"
+  requestType         String    // "New Policy", "Upgrade"
+  currentPolicyNumber String?   // Only if Upgrade
+  effectiveDate       DateTime?
+  duration            String?   // e.g. "1 year"
+  
+  price               String?   // Admin sets this. Stored as string for simplicity.
+  
+  documents           Document[]
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Document {
+  id              String        @id @default(uuid())
+  insuranceItemId String
+  insuranceItem   InsuranceItem @relation(fields: [insuranceItemId], references: [id], onDelete: Cascade)
+  
+  name            String
+  fileUrl         String
+  uploadedAt      DateTime      @default(now())
+}

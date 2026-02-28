@@ -1,0 +1,5 @@
+{
+  "name": "Multi-Tenant Form App",
+  "description": "A shared form application for Clients and Admins with role-based permissions and multi-tenancy.",
+  "requestFramePermissions": []
+}
